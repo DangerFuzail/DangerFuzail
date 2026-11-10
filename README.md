@@ -91,10 +91,5 @@ Project Three	Write one line about your project.	C# · .NET · SQL Server
   <img width="100%" src="https://capsule-render.vercel.app/api?type=waving&color=0:7C3AED,50:1D4ED8,100:0891B2&height=120&section=footer" alt="Footer wave" />
 </div>
 ## My Contribution Graph
-
-<!-- [game-name] -->
-<picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/[game-name]-contribution-graph-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/[game-name]-contribution-graph.svg">
-    <img alt="[game-name] contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/[game-name]-contribution-graph.svg">
-</picture>
+![Pacman Contribution Graph](https://raw.githubusercontent.com/kamalesh404/kamalesh404/output/pacman-contribution-graph-dark.svg)
+<img src="https://raw.githubusercontent.com/kamalesh404/kamalesh404/output/pacman-contribution-graph-dark.svg" alt="Pacman Contribution Graph" width="100%">
