@@ -80,6 +80,9 @@ Project One	Write one line about your project.	React · JavaScript
 Project Two	Write one line about your project.	Node.js · MongoDB
 Project Three	Write one line about your project.	C# · .NET · SQL Server
 
+## My Contribution Graph
+
+<img src="https://raw.githubusercontent.com/kamalesh404/kamalesh404/output/pacman-contribution-graph-dark.svg" alt="Pacman Contribution Graph" width="100%">
 
 💬 Developer Quote
 <div align="center">
@@ -90,6 +93,5 @@ Project Three	Write one line about your project.	C# · .NET · SQL Server
   <br/><br/>
   <img width="100%" src="https://capsule-render.vercel.app/api?type=waving&color=0:7C3AED,50:1D4ED8,100:0891B2&height=120&section=footer" alt="Footer wave" />
 </div>
-## My Contribution Graph
-![Pacman Contribution Graph](https://raw.githubusercontent.com/kamalesh404/kamalesh404/output/pacman-contribution-graph-dark.svg)
-<img src="https://raw.githubusercontent.com/kamalesh404/kamalesh404/output/pacman-contribution-graph-dark.svg" alt="Pacman Contribution Graph" width="100%">
+
+
