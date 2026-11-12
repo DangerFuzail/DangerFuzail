@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Danger Fuzail — Snake + Maze Arcade</title>
+<meta name="description" content="Play Snake and Maze Chase right from the DangerFuzail GitHub profile. Keyboard + touch controls." />
+<style>
+  :root {
+    --bg: #080b16;
+    --panel: #0d1117;
+    --panel-2: #111827;
+    --cyan: #22d3ee;
+    --blue: #1d4ed8;
+    --purple: #7c3aed;
+    --text: #c9d1d9;
+    --dim: #8b949e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: radial-gradient(1200px 600px at 50% -10%, #101a33 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: "Fira Code", "Segoe UI", Consolas, monospace;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100%; padding: 18px 10px 40px;
+    user-select: none;
+  }
+  header { text-align: center; margin-bottom: 14px; }
+  header h1 {
+    font-size: clamp(20px, 4.5vw, 30px);
+    background: linear-gradient(90deg, var(--cyan), var(--blue), var(--purple));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: 1px;
+  }
+  header p { color: var(--dim); font-size: 12px; margin-top: 6px; }
+  header a { color: var(--cyan); text-decoration: none; }
+
+  .tabs { display: flex; gap: 10px; margin: 10px 0 16px; }
+  .tab {
+    padding: 10px 22px; border-radius: 999px; border: 1px solid #1f2937;
+    background: var(--panel); color: var(--dim); cursor: pointer;
+    font: inherit; font-size: 14px; transition: all .2s ease;
+  }
+  .tab.active {
+    color: #fff; border-color: var(--cyan);
+    background: linear-gradient(135deg, rgba(29,78,216,.35), rgba(34,211,238,.18));
+    box-shadow: 0 0 18px rgba(34,211,238,.35);
+  }
+
+  .stage { position: relative; width: min(92vw, 480px); }
+  canvas {
+    width: 100%; display: block; border-radius: 14px;
+    border: 1px solid #1f2937; background: var(--panel);
+    box-shadow: 0 0 30px rgba(29,78,216,.25), inset 0 0 60px rgba(8,11,22,.6);
+    touch-action: none;
+  }
+  .game { display: none; }
+  .game.active { display: block; }
+
+  .hud {
+    width: min(92vw, 480px); display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 4px; font-size: 14px; flex-wrap: wrap; gap: 8px;
+  }
+  .hud .stat b { color: var(--cyan); }
+  .hud .stat.p b { color: #a78bfa; }
+  .iconbtn {
+    background: var(--panel); color: var(--text); border: 1px solid #1f2937;
+    border-radius: 10px; padding: 6px 12px; cursor: pointer; font: inherit; font-size: 13px;
+  }
+  .iconbtn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  .overlay {
+    position: absolute; inset: 0; border-radius: 14px;
+    background: rgba(8, 11, 22, .88); backdrop-filter: blur(3px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 14px; padding: 20px; z-index: 5;
+  }
+  .overlay.hidden { display: none; }
+  .overlay h2 {
+    font-size: clamp(18px, 4vw, 26px); color: #fff;
+    text-shadow: 0 0 18px rgba(34,211,238,.8);
+  }
+  .overlay p { color: var(--dim); font-size: 13px; max-width: 34ch; line-height: 1.7; }
+  .overlay .big {
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    color: #fff; border: none; border-radius: 12px; padding: 12px 30px;
+    font: inherit; font-size: 15px; cursor: pointer;
+    box-shadow: 0 0 22px rgba(34,211,238,.45); transition: transform .15s ease;
+  }
+  .overlay .big:active { transform: scale(.96); }
+  .overlay .keys { font-size: 12px; color: var(--dim); }
+  .overlay .keys kbd {
+    background: var(--panel-2); border: 1px solid #374151; border-bottom-width: 3px;
+    border-radius: 6px; padding: 2px 7px; color: var(--cyan); font: inherit;
+  }
+
+  .dpad { margin-top: 16px; display: none; }
+  .dpad.show { display: block; }
+  .dpad .grid {
+    display: grid; grid-template-columns: repeat(3, 58px); grid-template-rows: repeat(3, 58px); gap: 6px;
+  }
+  .dbtn {
+    border: 1px solid #1f2937; background: var(--panel); color: var(--cyan);
+    border-radius: 12px; font-size: 20px; display: flex; align-items: center; justify-content: center;
+    touch-action: manipulation; cursor: pointer;
+  }
+  .dbtn:active { background: rgba(34,211,238,.15); border-color: var(--cyan); }
+  .dbtn.up    { grid-area: 1 / 2; }
+  .dbtn.left  { grid-area: 2 / 1; }
+  .dbtn.right { grid-area: 2 / 3; }
+  .dbtn.down  { grid-area: 3 / 2; }
+
+  footer { margin-top: 26px; color: var(--dim); font-size: 12px; text-align: center; line-height: 1.8; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🕹️ DANGER FUZAIL — MINI ARCADE</h1>
+    <p>Snake &amp; Maze Chase · keyboard + touch · <a href="../#-play-my-mini-arcade">← back to profile</a></p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-snake" data-game="snake">🐍 Snake</button>
+    <button class="tab" id="tab-maze" data-game="maze">👻 Maze Chase</button>
+  </div>
+
+  <!-- ══════════════════ SNAKE ══════════════════ -->
+  <section class="game active" id="game-snake">
+    <div class="hud">
+      <span class="stat">SCORE <b id="snake-score">0</b></span>
+      <span class="stat p">BEST <b id="snake-best">0</b></span>
+      <button class="iconbtn" id="snake-restart">⟳ Restart</button>
+      <button class="iconbtn" id="mute">🔊 Sound</button>
+    </div>
+    <div class="stage">
+      <canvas id="snake-canvas" width="480" height="480"></canvas>
+      <div class="overlay" id="snake-overlay">
+        <h2>🐍 NEON SNAKE</h2>
+        <p>Eat the glowing orbs. Don't bite yourself. Walls are deadly.<br/>Speed rises with every orb.</p>
+        <button class="big" id="snake-start">▶ PLAY</button>
+        <span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> / <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or swipe</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ MAZE CHASE ══════════════════ -->
+  <section class="game" id="game-maze">
+    <div class="hud">
+      <span class="stat">SCORE <b id="maze-score">0</b></span>
+      <span class="stat p">BEST <b id="maze-best">0</b></span>
+      <span class="stat">LIVES <b id="maze-lives">♥♥♥</b></span>
+      <span class="stat">LVL <b id="maze-level">1</b></span>
+      <button class="iconbtn" id="maze-restart">⟳ Restart</button>
+    </div>
+    <div class="stage">
+      <canvas id="maze-canvas" width="480" height="360"></canvas>
+      <div class="overlay" id="maze-overlay">
+        <h2>👻 MAZE CHASE</h2>
+        <p>Collect every dot before the ghost catches you.<br/>Each level the ghost gets faster.</p>
+        <button class="big" id="maze-start">▶ PLAY</button>
+        <span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> / <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or swipe</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="dpad" id="dpad">
+    <div class="grid">
+      <button class="dbtn up"    data-dir="up">▲</button>
+      <button class="dbtn left"  data-dir="left">◀</button>
+      <button class="dbtn right" data-dir="right">▶</button>
+      <button class="dbtn down"  data-dir="down">▼</button>
+    </div>
+  </div>
+
+  <footer>
+    Built with 💙 by <b>DangerFuzail</b> · hosted on GitHub Pages<br/>
+    High scores are saved in your browser.
+  </footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ───────────────────────── shared helpers ───────────────────────── */
+
+  var DIRS = {
+    up:    { x: 0, y: -1 },
+    down:  { x: 0, y: 1 },
+    left:  { x: -1, y: 0 },
+    right: { x: 1, y: 0 }
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  function loadBest(key) {
+    try { return parseInt(localStorage.getItem(key) || "0", 10) || 0; }
+    catch (e) { return 0; }
+  }
+  function saveBest(key, val) {
+    try { localStorage.setItem(key, String(val)); } catch (e) { /* ignore */ }
+  }
+
+  /* Tiny WebAudio blips — no assets needed. */
+  var muted = false, audioCtx = null;
+  function beep(freq, dur, type) {
+    if (muted) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + dur);
+    } catch (e) { /* audio is a bonus — never crash on it */ }
+  }
+  $("mute").addEventListener("click", function () {
+    muted = !muted;
+    this.textContent = muted ? "🔇 Muted" : "🔊 Sound";
+  });
+
+  /* Detect touch device → show the D-pad. */
+  var isTouch = ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
+  var dpadTarget = null;                 // active game receives direction calls
+  var activeGame = "snake";
+  if (isTouch) $("dpad").classList.add("show");
+
+  function setDir(dir) { if (dpadTarget) dpadTarget(dir); }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".dbtn"), function (btn) {
+    btn.addEventListener("pointerdown", function (e) {
+      e.preventDefault();
+      setDir(btn.getAttribute("data-dir"));
+    });
+  });
+
+  /* Swipe on the whole document — works for whichever game is active. */
+  var swipeStart = null;
+  document.addEventListener("touchstart", function (e) {
+    if (e.target.closest(".dbtn") || e.target.closest("button")) return;
+    swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, { passive: true });
+  document.addEventListener("touchmove", function (e) {
+    if (!swipeStart) return;
+    var dx = e.touches[0].clientX - swipeStart.x;
+    var dy = e.touches[0].clientY - swipeStart.y;
+    if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+    setDir(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
+    swipeStart = null;
+  }, { passive: true });
+
+  /* Keyboard routes to the active game. */
+  document.addEventListener("keydown", function (e) {
+    var map = {
+      ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+      w: "up", s: "down", a: "left", d: "right",
+      W: "up", S: "down", A: "left", D: "right"
+    };
+    if (map[e.key]) {
+      e.preventDefault();
+      setDir(map[e.key]);
+    }
+  });
+
+  /* Tab switching */
+  var games = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelector(".tab.active").classList.remove("active");
+      tab.classList.add("active");
+      document.querySelector(".game.active").classList.remove("active");
+      var name = tab.getAttribute("data-game");
+      $("game-" + name).classList.add("active");
+      activeGame = name;
+      dpadTarget = games[name] ? games[name].setDir : null;
+      if (games.snake) games.snake.setRunning(name === "snake");
+      if (games.maze) games.maze.setRunning(name === "maze");
+    });
+  });
+
+  /* Neon glow helper */
+  function glow(ctx, color, blur) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = blur;
+  }
+  function noGlow(ctx) { ctx.shadowBlur = 0; }
+
+  /* ══════════════════════════ SNAKE ══════════════════════════ */
+
+  function SnakeGame() {
+    this.canvas = $("snake-canvas");
+    this.ctx = this.canvas.getContext("2d");
+    this.cols = 24; this.rows = 24; this.cell = 20;
+    this.best = loadBest("df_snake_best");
+    $("snake-best").textContent = this.best;
+
+    this.running = false;
+    this.lastTick = 0;
+    this.state = "idle"; // idle | playing | dead
+    this.overlay = $("snake-overlay");
+
+    this.reset();
+    var self = this;
+    requestAnimationFrame(function loop(t) {
+      self.frame(t);
+      requestAnimationFrame(loop);
+    });
+
+    $("snake-start").addEventListener("click", function () { self.begin(); });
+    $("snake-restart").addEventListener("click", function () { self.begin(); });
+  }
+
+  SnakeGame.prototype.reset = function () {
+    this.snake = [{ x: 11, y: 12 }, { x: 10, y: 12 }, { x: 9, y: 12 }];
+    this.dir = "right";
+    this.pendingDir = "right";
+    this.score = 0;
+    this.tickMs = 140;
+    $("snake-score").textContent = "0";
+    this.placeFood();
+  };
+
+  SnakeGame.prototype.placeFood = function () {
+    while (true) {
+      var f = {
+        x: Math.floor(Math.random() * this.cols),
+        y: Math.floor(Math.random() * this.rows)
+      };
+      var hit = this.snake.some(function (s) { return s.x === f.x && s.y === f.y; });
+      if (!hit) { this.food = f; return; }
+    }
+  };
+
+  SnakeGame.prototype.begin = function () {
+    this.reset();
+    this.state = "playing";
+    this.overlay.classList.add("hidden");
+  };
+
+  SnakeGame.prototype.gameOver = function () {
+    this.state = "dead";
+    beep(120, 0.35, "sawtooth");
+    if (this.score > this.best) {
+      this.best = this.score;
+      saveBest("df_snake_best", this.best);
+      $("snake-best").textContent = this.best;
+    }
+    var self = this;
+    this.overlay.querySelector("h2").textContent = "💀 GAME OVER";
+    this.overlay.querySelector("p").innerHTML =
+      "Score: <b style='color:#22d3ee'>" + this.score + "</b> · Best: <b style='color:#a78bfa'>" + this.best + "</b>";
+    this.overlay.querySelector("button").textContent = "↻ PLAY AGAIN";
+    setTimeout(function () { self.overlay.classList.remove("hidden"); }, 350);
+  };
+
+  SnakeGame.prototype.setDir = function (dir) {
+    if (this.state !== "playing") return;
+    var cur = DIRS[this.dir], next = DIRS[dir];
+    if (cur.x + next.x === 0 && cur.y + next.y === 0) return; // no 180° turn
+    this.pendingDir = dir;
+  };
+
+  SnakeGame.prototype.setRunning = function (running) {
+    this.running = running;
+  };
+
+  SnakeGame.prototype.frame = function (t) {
+    if (!this.running) return;
+    if (this.state === "playing" && t - this.lastTick >= this.tickMs) {
+      this.lastTick = t;
+      this.step();
+    }
+    this.draw();
+  };
+
+  SnakeGame.prototype.step = function () {
+    this.dir = this.pendingDir;
+    var d = DIRS[this.dir];
+    var head = { x: this.snake[0].x + d.x, y: this.snake[0].y + d.y };
+
+    if (head.x < 0 || head.y < 0 || head.x >= this.cols || head.y >= this.rows ||
+        this.snake.some(function (s) { return s.x === head.x && s.y === head.y; })) {
+      this.gameOver();
+      return;
+    }
+
+    this.snake.unshift(head);
+    if (head.x === this.food.x && head.y === this.food.y) {
+      this.score += 10;
+      $("snake-score").textContent = this.score;
+      this.tickMs = Math.max(70, this.tickMs - 2);
+      beep(880, 0.08);
+      this.placeFood();
+    } else {
+      this.snake.pop();
+    }
+  };
+
+  SnakeGame.prototype.draw = function () {
+    var ctx = this.ctx, c = this.cell;
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    /* subtle grid */
+    ctx.strokeStyle = "rgba(34,211,238,0.05)";
+    ctx.lineWidth = 1;
+    for (var i = 1; i < this.cols; i++) {
+      ctx.beginPath(); ctx.moveTo(i * c, 0); ctx.lineTo(i * c, this.canvas.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i * c); ctx.lineTo(this.canvas.width, i * c); ctx.stroke();
+    }
+
+    /* food — pulsing purple orb */
+    var pulse = 3 + Math.sin(Date.now() / 150) * 1.5;
+    glow(ctx, "#7c3aed", 16);
+    ctx.fillStyle = "#a78bfa";
+    ctx.beginPath();
+    ctx.arc(this.food.x * c + c / 2, this.food.y * c + c / 2, c / 2 - 3 + pulse * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    noGlow(ctx);
+
+    /* snake — cyan → blue gradient body */
+    for (var j = this.snake.length - 1; j >= 0; j--) {
+      var seg = this.snake[j];
+      var tSeg = j / Math.max(1, this.snake.length - 1);
+      var r = Math.round(34 + (29 - 34) * tSeg);
+      var g = Math.round(211 + (78 - 211) * tSeg);
+      var b = Math.round(238 + (216 - 238) * tSeg);
+      glow(ctx, "#22d3ee", j === 0 ? 18 : 8);
+      ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
+      var pad = j === 0 ? 1.5 : 2.5;
+      roundRect(ctx, seg.x * c + pad, seg.y * c + pad, c - pad * 2, c - pad * 2, 5);
+      ctx.fill();
+    }
+    noGlow(ctx);
+
+    /* eyes on the head */
+    var h = this.snake[0], d = DIRS[this.dir];
+    ctx.fillStyle = "#080b16";
+    var ex = h.x * c + c / 2 + d.x * 4, ey = h.y * c + c / 2 + d.y * 4;
+    ctx.beginPath(); ctx.arc(ex + (d.y !== 0 ? 3.5 : 0), ey + (d.x !== 0 ? 3.5 : 0), 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex - (d.y !== 0 ? 3.5 : 0), ey - (d.x !== 0 ? 3.5 : 0), 2, 0, Math.PI * 2); ctx.fill();
+  };
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  /* ══════════════════════════ MAZE CHASE ══════════════════════════ */
+
+  var MAZE = [
+    "########################",
+    "#P........##..........G#",
+    "#.##.#####.##.#####.##.#",
+    "#o##.#...........#.##o.#",
+    "#....#.##.####.##.#....#",
+    "#.####.##.####.##.####.#",
+    "#......................#",
+    "#.##.###.######.###.##.#",
+    "#....##....##....##....#",
+    "#.####.##.####.##.####.#",
+    "#o...................o.#",
+    "#.##.###.######.###.##.#",
+    "#....#....####....#....#",
+    "#.####.##.####.##.####.#",
+    "#..........##..........#",
+    "########################"
+  ];
+
+  function MazeGame() {
+    this.canvas = $("maze-canvas");
+    this.ctx = this.canvas.getContext("2d");
+    this.cell = 20;
+    this.rows = MAZE.length;
+    this.cols = MAZE[0].length;
+    this.best = loadBest("df_maze_best");
+    $("maze-best").textContent = this.best;
+
+    this.state = "idle";
+    this.running = false;
+    this.lastPlayerMove = 0;
+    this.lastGhostMove = 0;
+    this.overlay = $("maze-overlay");
+
+    this.resetLevel(1);
+    this.lives = 3;
+    this.score = 0;
+    this.updateHud();
+
+    var self = this;
+    requestAnimationFrame(function loop(t) {
+      self.frame(t);
+      requestAnimationFrame(loop);
+    });
+
+    $("maze-start").addEventListener("click", function () { self.begin(); });
+    $("maze-restart").addEventListener("click", function () { self.begin(); });
+  }
+
+  MazeGame.prototype.resetLevel = function (level) {
+    this.level = level;
+    this.dots = [];
+    this.playerStart = null;
+    this.ghostStart = null;
+    for (var y = 0; y < MAZE.length; y++) {
+      for (var x = 0; x < MAZE[y].length; x++) {
+        var ch = MAZE[y][x];
+        if (ch === "P") { this.playerStart = { x: x, y: y }; }
+        if (ch === "G") { this.ghostStart = { x: x, y: y }; }
+      }
+    }
+    for (y = 0; y < MAZE.length; y++) {
+      for (x = 0; x < MAZE[y].length; x++) {
+        ch = MAZE[y][x];
+        if (ch === ".") this.dots.push({ x: x, y: y });
+        if (ch === "o") this.dots.push({ x: x, y: y, big: true });
+      }
+    }
+    this.totalDots = this.dots.length;
+    this.player = { x: this.playerStart.x, y: this.playerStart.y };
+    this.ghost = { x: this.ghostStart.x, y: this.ghostStart.y };
+    this.playerDir = null;
+    this.playerTick = 130;
+    this.ghostTick = Math.max(150, 300 - (level - 1) * 22);
+    this.ghostPath = [];
+  };
+
+  MazeGame.prototype.begin = function () {
+    this.score = 0;
+    this.lives = 3;
+    this.resetLevel(1);
+    this.updateHud();
+    this.state = "playing";
+    this.overlay.classList.add("hidden");
+  };
+
+  MazeGame.prototype.updateHud = function () {
+    $("maze-score").textContent = this.score;
+    $("maze-lives").textContent = new Array(this.lives + 1).join("♥") || "—";
+    $("maze-level").textContent = this.level;
+  };
+
+  MazeGame.prototype.setDir = function (dir) {
+    this.playerDir = dir;
+  };
+
+  MazeGame.prototype.setRunning = function (running) {
+    this.running = running;
+  };
+
+  MazeGame.prototype.frame = function (t) {
+    if (!this.running || this.state !== "playing") return;
+    if (t - this.lastPlayerMove >= this.playerTick) { this.lastPlayerMove = t; this.movePlayer(); }
+    if (t - this.lastGhostMove >= this.ghostTick) { this.lastGhostMove = t; this.moveGhost(); }
+    this.draw();
+  };
+
+  MazeGame.prototype.isWall = function (x, y) {
+    if (y < 0 || y >= this.rows || x < 0 || x >= this.cols) return true;
+    return MAZE[y][x] === "#";
+  };
+
+  MazeGame.prototype.movePlayer = function () {
+    if (!this.playerDir) return;
+    var d = DIRS[this.playerDir];
+    var nx = this.player.x + d.x, ny = this.player.y + d.y;
+    if (!this.isWall(nx, ny)) {
+      this.player.x = nx;
+      this.player.y = ny;
+    }
+    /* eat dot */
+    for (var i = 0; i < this.dots.length; i++) {
+      if (this.dots[i].x === nx && this.dots[i].y === ny) {
+        var big = !!this.dots[i].big;
+        this.score += big ? 50 : 10;
+        this.dots.splice(i, 1);
+        beep(big ? 660 : 880, 0.07);
+        this.updateHud();
+        if (this.dots.length === 0) { this.nextLevel(); return; }
+        break;
+      }
+    }
+    this.checkCaught();
+  };
+
+  MazeGame.prototype.moveGhost = function () {
+    /* BFS from ghost to player — recalc every ghost move (grid is tiny). */
+    var start = this.ghost, goal = this.player;
+    var key = function (p) { return p.y * 100 + p.x; };
+    var prev = {}, seen = {}, queue = [start], head = 0;
+    seen[key(start)] = true;
+    while (head < queue.length) {
+      var cur = queue[head++];
+      if (cur.x === goal.x && cur.y === goal.y) break;
+      var dirs = [DIRS.up, DIRS.down, DIRS.left, DIRS.right];
+      for (var i = 0; i < 4; i++) {
+        var nx = cur.x + dirs[i].x, ny = cur.y + dirs[i].y;
+        if (this.isWall(nx, ny)) continue;
+        var k = ny * 100 + nx;
+        if (seen[k]) continue;
+        seen[k] = true;
+        prev[k] = cur;
+        queue.push({ x: nx, y: ny });
+      }
+    }
+    var goalKey = key(goal);
+    if (!seen[goalKey]) return;
+    /* walk back to find the first step */
+    var node = goal, next = null;
+    while (!(node.x === start.x && node.y === start.y)) {
+      next = node;
+      node = prev[key(node)];
+      if (!node) { next = null; break; }
+    }
+    if (next) this.ghost = next;
+    this.checkCaught();
+  };
+
+  MazeGame.prototype.checkCaught = function () {
+    if (this.ghost.x === this.player.x && this.ghost.y === this.player.y) {
+      this.lives--;
+      beep(140, 0.3, "sawtooth");
+      this.updateHud();
+      if (this.lives <= 0) { this.gameOver(); return; }
+      this.player = { x: this.playerStart.x, y: this.playerStart.y };
+      this.ghost = { x: this.ghostStart.x, y: this.ghostStart.y };
+      this.playerDir = null;
+    }
+  };
+
+  MazeGame.prototype.nextLevel = function () {
+    beep(990, 0.15); setTimeout(function () { beep(1320, 0.2); }, 120);
+    var lvl = this.level + 1;
+    this.resetLevel(lvl);
+    this.updateHud();
+  };
+
+  MazeGame.prototype.gameOver = function () {
+    this.state = "dead";
+    if (this.score > this.best) {
+      this.best = this.score;
+      saveBest("df_maze_best", this.best);
+      $("maze-best").textContent = this.best;
+    }
+    var self = this;
+    this.overlay.querySelector("h2").textContent = "👻 CAUGHT!";
+    this.overlay.querySelector("p").innerHTML =
+      "Score: <b style='color:#22d3ee'>" + this.score + "</b> · Level: <b style='color:#a78bfa'>" + this.level + "</b> · Best: <b style='color:#a78bfa'>" + this.best + "</b>";
+    this.overlay.querySelector("button").textContent = "↻ TRY AGAIN";
+    setTimeout(function () { self.overlay.classList.remove("hidden"); }, 350);
+  };
+
+  MazeGame.prototype.draw = function () {
+    var ctx = this.ctx, c = this.cell;
+
+    ctx.fillStyle = "#0d1117";
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    /* walls */
+    for (var y = 0; y < this.rows; y++) {
+      for (var x = 0; x < this.cols; x++) {
+        if (MAZE[y][x] === "#") {
+          glow(ctx, "#1d4ed8", 8);
+          ctx.fillStyle = "#16224a";
+          roundRect(ctx, x * c + 1, y * c + 1, c - 2, c - 2, 4);
+          ctx.fill();
+          noGlow(ctx);
+        }
+      }
+    }
+
+    /* dots */
+    for (var i = 0; i < this.dots.length; i++) {
+      var dot = this.dots[i];
+      var cx = dot.x * c + c / 2, cy = dot.y * c + c / 2;
+      glow(ctx, "#22d3ee", dot.big ? 12 : 5);
+      ctx.fillStyle = dot.big ? "#67e8f9" : "#22d3ee";
+      ctx.beginPath();
+      ctx.arc(cx, cy, dot.big ? 5 : 2.4, 0, Math.PI * 2);
+      ctx.fill();
+      noGlow(ctx);
+    }
+
+    /* ghost — purple wisp */
+    var gx = this.ghost.x * c, gy = this.ghost.y * c;
+    glow(ctx, "#7c3aed", 18);
+    ctx.fillStyle = "#a78bfa";
+    ctx.beginPath();
+    ctx.arc(gx + c / 2, gy + c / 2 - 2, c / 2 - 3, Math.PI, 0);
+    ctx.lineTo(gx + c - 3, gy + c - 4);
+    for (var w = 0; w < 3; w++) {
+      ctx.arc(gx + c - 4 - w * (c - 6) / 3, gy + c - 4, (c - 6) / 6, 0, Math.PI, w % 2 === 0);
+    }
+    ctx.lineTo(gx + 3, gy + c / 2 - 2);
+    ctx.closePath();
+    ctx.fill();
+    noGlow(ctx);
+    ctx.fillStyle = "#080b16";
+    ctx.fillRect(gx + c / 2 - 5, gy + c / 2 - 5, 3, 3);
+    ctx.fillRect(gx + c / 2 + 2, gy + c / 2 - 5, 3, 3);
+
+    /* player — cyan orb with eyes */
+    var px = this.player.x * c, py = this.player.y * c;
+    glow(ctx, "#22d3ee", 16);
+    ctx.fillStyle = "#22d3ee";
+    ctx.beginPath();
+    ctx.arc(px + c / 2, py + c / 2, c / 2 - 3, 0, Math.PI * 2);
+    ctx.fill();
+    noGlow(ctx);
+    ctx.fillStyle = "#080b16";
+    ctx.beginPath(); ctx.arc(px + c / 2 - 3, py + c / 2 - 2, 1.8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(px + c / 2 + 3, py + c / 2 - 2, 1.8, 0, Math.PI * 2); ctx.fill();
+  };
+
+  /* ───────────────────────── boot ───────────────────────── */
+
+  games.snake = new SnakeGame();
+  games.maze = new MazeGame();
+  dpadTarget = games.snake.setDir.bind(games.snake);
+
+  /* keep both loops alive; only the active tab consumes CPU */
+  setInterval(function () {
+    if (activeGame === "snake" && games.snake.state === "playing") games.snake.draw();
+    if (activeGame === "maze" && games.maze.state === "playing") games.maze.draw();
+  }, 50);
+  games.snake.setRunning(true);
+  games.maze.setRunning(false);
+
+  /* patch: route setDir through active tab */
+  setDir = (function (orig) {
+    return function (dir) {
+      var g = activeGame === "snake" ? games.snake : games.maze;
+      g.setDir(dir);
+    };
+  })(setDir);
+})();
+</script>
+</body>
+</html>
