@@ -219,6 +219,16 @@ Take a break and play the browser versions of Snake and Maze Chase — with keyb
 
 <p align="center"><sub>Auto-updated daily from my <a href="https://dev.to/DangerFuzail">dev.to</a> feed by the <i>Latest blog posts</i> workflow in this package. (Shows nothing until you publish your first post or run the workflow.)</sub></p>
 
+
+
+
+## My Contribution Graph
+
+<img src="https://raw.githubusercontent.com/kamalesh404/kamalesh404/output/pacman-contribution-graph-dark.svg" alt="Pacman Contribution Graph" width="100%">
+
+
+
+
 ## 😂 Dev Fuel
 
 <div align="center">
@@ -240,6 +250,7 @@ Take a break and play the browser versions of Snake and Maze Chase — with keyb
 <div align="center">
   <img src="https://quotes-github-readme.vercel.app/api?type=horizontal&theme=tokyonight" alt="Random developer quote" />
 </div>
+
 
 ## ☕ Support My Work
 
